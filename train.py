@@ -1,11 +1,13 @@
 import argparse
+import json
 import os
 import torch
+
+from data_util.dataset import CTDataset
 from networks.recursive_cascade_networks import RecursiveCascadeNetwork
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 from metrics.losses import total_loss
-from data_util.ctscan import sample_generator
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import numpy as np
@@ -93,6 +95,9 @@ def generate_plots(fixed, moving, warped, flows, train_loss, val_loss, reg_loss,
 
 
 def main():
+    config = json.load(open('./config.json'))
+    config['device'] = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     if not os.path.exists('./ckp/model_wts'):
         print("Creating ckp dir")
         os.makedirs('./ckp/model_wts')
@@ -101,7 +106,7 @@ def main():
         print("Creating visualization dir")
         os.makedirs('./ckp/visualization')
 
-    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(512, 512))
+    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(64, 512, 512))
     trainable_params = []
     for submodel in model.stems:
         trainable_params += list(submodel.parameters())
@@ -110,8 +115,18 @@ def main():
 
     optim = Adam(trainable_params, lr=1e-4)
     scheduler = StepLR(optimizer=optim, step_size=10, gamma=0.96)
-    train_generator = iter(sample_generator('./train.txt', batch_size=args.b))
-    val_generator = iter(sample_generator('./validation.txt', batch_size=args.b))
+
+    train_generator = torch.utils.data.DataLoader(
+        CTDataset(config['root_data_path'], config),
+        batch_size=config['batch_size'],
+        shuffle=True
+    )
+
+    val_generator = torch.utils.data.DataLoader(
+        CTDataset(config['root_data_path_eval'], config),
+        batch_size=config['batch_size'],
+        shuffle=True
+    )
 
     # Saving the losses
     train_loss_log = []
