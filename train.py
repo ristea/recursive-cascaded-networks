@@ -18,7 +18,7 @@ parser.add_argument('--n', "--n_cascades", type=int, default=5)
 parser.add_argument('--e', "--n_epochs", type=int, default=100)
 parser.add_argument('--i', "--n_iters_train", type=int, default=2000)
 parser.add_argument('--iv', "--n_iters_val", type=int, default=2000)
-parser.add_argument('--c', "--checkpoint_frequency", type=int, default=20)
+parser.add_argument('--c', "--checkpoint_frequency", type=int, default=2)
 parser.add_argument('--fixed_sample', type=int, default=100)
 args = parser.parse_args()
 
@@ -106,7 +106,7 @@ def main():
         print("Creating visualization dir")
         os.makedirs('./ckp/visualization')
 
-    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(64, 256, 256))
+    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(128, 256, 256))
 
     trainable_params = []
     for submodel in model.stems:
@@ -118,13 +118,13 @@ def main():
     scheduler = StepLR(optimizer=optim, step_size=10, gamma=0.96)
 
     train_generator = torch.utils.data.DataLoader(
-        CTDataset(config['root_data_path'], config),
+        CTDataset(config['train_data_path'], config),
         batch_size=config['batch_size'],
         shuffle=True
     )
 
     val_generator = torch.utils.data.DataLoader(
-        CTDataset(config['root_data_path_eval'], config),
+        CTDataset(config['eval_data_path'], config),
         batch_size=config['batch_size'],
         shuffle=True
     )
@@ -140,20 +140,19 @@ def main():
         train_reg_loss = 0
         vis_batch = []
         model.train()
-        for iteration in range(1, args.i):
-            if iteration % int(0.1 * args.i) == 0:
-                print(f"\t-----Iteration {iteration} / {args.i} -----")
+        for iteration, (fixed, moving) in enumerate(train_generator):
+            # if iteration % int(0.1 * args.i) == 0:
+            # print(f"\t-----Iteration {iteration} / {len(train_generator)}-----")
             optim.zero_grad()
-            fixed, moving = next(train_generator)
-            fixed = fixed.cuda()
-            moving = moving.cuda()
+            fixed = fixed.float().cuda()
+            moving = moving.float().cuda()
             warped, flows = model(fixed, moving)
-            loss = total_loss(fixed, warped[-1], flows)
+            sim_loss, reg_loss = total_loss(fixed, warped[-1], flows)
+            loss = sim_loss + reg_loss
             loss.backward()
             optim.step()
 
             train_epoch_loss += loss.item()
-            train_reg_loss += reg.item()
 
             if iteration == args.fixed_sample:
                 vis_batch.append(fixed)
@@ -162,27 +161,30 @@ def main():
                 vis_batch.append(flows)
 
         train_loss_log.append(train_epoch_loss / args.i)
-        reg_loss_log.append(train_reg_loss / args.i)
 
         model.eval()
         print(f">>>>> Validation <<<<<")
 
+        sim_loss = []
+        reg_loss = []
+
         val_epoch_loss = 0
-        for iteration in range(1, args.iv):
-            if iteration % int(0.1 * args.iv) == 0:
-                print(f"\t-----Iteration {iteration} / {args.iv} -----")
+        for iteration, (fixed, moving) in enumerate(val_generator):
+            # print(f"\t-----Iteration {iteration} / {len(val_generator)} -----")
 
             with torch.no_grad():
-                fixed, moving = next(val_generator)
-                fixed = fixed.cuda()
-                moving = moving.cuda()
+                fixed = fixed.float().cuda()
+                moving = moving.float().cuda()
                 warped, flows = model(fixed, moving)
                 sim, reg = total_loss(fixed, warped[-1], flows)
                 loss = sim + reg
                 val_epoch_loss += loss.item()
+                sim_loss.append(sim.item())
+                reg_loss.append(reg.item())
 
-        val_loss_log.append(val_epoch_loss / args.iv)
+        val_loss_log.append(val_epoch_loss / len(val_generator))
 
+        print(f"sim loss {np.mean(sim_loss)}. Reg loss {np.mean(reg_loss)}. Total loss {np.mean(val_loss_log)}")
         scheduler.step()
 
         if epoch % args.c == 0:
@@ -195,9 +197,6 @@ def main():
             ckp['epoch'] = epoch
 
             torch.save(ckp, f'./ckp/model_wts/epoch_{epoch}.pth')
-
-        generate_plots(vis_batch[0], vis_batch[1], vis_batch[2], vis_batch[3], train_loss_log, val_loss_log,
-                       reg_loss_log, epoch)
 
 
 if __name__ == '__main__':

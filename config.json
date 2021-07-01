@@ -2,14 +2,13 @@
   "exp_name": "registration",
   "exp_path": "./experiments",
   "about_experiment": "Here must be the experiment description!",
-  "root_data_path": "/home/radu/Projects/medical-registration/ugatit/datasets/ct-coltea-dataset.pkl",
-  "root_data_path_eval": "/home/radu/Projects/medical-registration/ugatit/datasets/ct-coltea-dataset-eval.pkl",
-  "Aclass": "ARTERIAL",
-  "Bclass": "NATIVE",
+  "root_data_path": "/home/radu/Downloads/CT-Coltea-DB-v2/CT-Coltea-DB",
+  "Fixed": "ARTERIAL",
+  "Moving": "NATIVE",
 
-  "train_data_path": "/home/veridium/Downloads/CT-Coltea-DB/train_data.csv",
-  "eval_data_path": "/home/veridium/Downloads/CT-Coltea-DB/eval_data.csv",
-  "test_data_path": "/home/veridium/Downloads/CT-Coltea-DB/test_data.csv",
+  "train_data_path": "/home/radu/Downloads/CT-Coltea-DB-v2/train_data.csv",
+  "eval_data_path": "/home/radu/Downloads/CT-Coltea-DB-v2/eval_data.csv",
+  "test_data_path": "/home/radu/Downloads/CT-Coltea-DB-v2/test_data.csv",
 
   "use_visdom": false,
 
@@ -17,7 +16,7 @@
   "lr_sch_step": 100,
   "lr_sch_gamma": 0.5,
   "weight_decay": 0.00001,
-  "batch_size": 16,
+  "batch_size": 1,
 
   "loss_function": "mse_loss",
 

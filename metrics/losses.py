@@ -65,11 +65,18 @@ def jacobian_det(flow):
 
 
 def total_loss(fixed, moving, flows):
+    padded = 0
+    for i in range(0, fixed.shape[2]):
+        if torch.abs(fixed[0, 0, i]).sum() == 0:
+            padded += 1
+
+    fixed = fixed[:, :, padded:, :, :]
+    moving = moving[:, :, padded:, :, :]
+    for i in range(0, len(flows)):
+        flows[i] = flows[i][:, :, padded:, :, :]
+
     sim_loss = pearson_correlation(fixed, moving)
     # Regularize all flows
-    if len(fixed.size() == 4): #(N, C, H, W)
-        reg_loss = sum([regularize_loss(flow) for flow in flows])
-    else:
-        reg_loss = sum([regularize_loss_3d(flow) for flow in flows])
-    return sim_loss + reg_loss
+    reg_loss = sum([regularize_loss_3d(flow) for flow in flows])
+    return sim_loss, reg_loss
 

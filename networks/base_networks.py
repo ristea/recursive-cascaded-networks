@@ -177,7 +177,6 @@ class VTNAffineStem(nn.Module):
         else:
             self.fc_loc[-1].bias.data.copy_(torch.tensor([1, 0, 0, 0, 1, 0], dtype=torch.float))
 
-
     def forward(self, fixed, moving):
         concat_image = torch.cat((fixed, moving), dim=1)  # 2 x 512 x 512
         x1 = self.conv1(concat_image)  # 16 x 256 x 256
