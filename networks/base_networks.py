@@ -140,9 +140,9 @@ class VTNAffineStem(nn.Module):
         self.conv1 = convolveLeakyReLU(2, channels, 3, 2, dim=self.dim)
         self.conv2 = convolveLeakyReLU(channels, 2 * channels, 3, 2, dim=dim)
         self.conv3 = convolveLeakyReLU(2 * channels, 4 * channels, 3, 2, dim=dim)
-        self.conv3_1 = convolveLeakyReLU(4 * channels, 4 * channels, 3, 1, dim=dim)
+        self.conv3_1 = convolveLeakyReLU(4 * channels, 4 * channels, 3, 2, dim=dim)
         self.conv4 = convolveLeakyReLU(4 * channels, 8 * channels, 3, 2, dim=dim)
-        self.conv4_1 = convolveLeakyReLU(8 * channels, 8 * channels, 3, 1, dim=dim)
+        self.conv4_1 = convolveLeakyReLU(8 * channels, 8 * channels, 3, 2, dim=dim)
         self.conv5 = convolveLeakyReLU(8 * channels, 16 * channels, 3, 2, dim=dim)
         self.conv5_1 = convolveLeakyReLU(16 * channels, 16 * channels, 3, 1, dim=dim)
         self.conv6 = convolveLeakyReLU(16 * channels, 32 * channels, 3, 2, dim=dim)
@@ -152,16 +152,16 @@ class VTNAffineStem(nn.Module):
         self.last_conv_size = im_size // (self.channels * 4)
 
         self.fc_loc = nn.Sequential(
-            nn.Linear(512 * self.last_conv_size**dim, 2048),
+            nn.Linear(512, 512),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(2048, 1024),
+            nn.Linear(512, 256),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(1024, 256),
+            nn.Linear(256, 128),
             nn.ReLU(True),
             nn.Dropout(0.5),
-            nn.Linear(256, 6*(dim - 1))
+            nn.Linear(128, 6*(dim - 1))
         )
 
         # Initialize the weights/bias with identity transformation
@@ -192,7 +192,7 @@ class VTNAffineStem(nn.Module):
         x6_1 = self.conv6_1(x6)  # 512 x 8 x 8
 
         # Affine transformation
-        xs = x6_1.view(-1, 512 * self.last_conv_size ** self.dim)
+        xs = x6_1.view(x6_1.shape[0], -1)
         if self.dim == 3:
             theta = self.fc_loc(xs).view(-1, 3, 4)
         else:

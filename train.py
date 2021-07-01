@@ -106,7 +106,8 @@ def main():
         print("Creating visualization dir")
         os.makedirs('./ckp/visualization')
 
-    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(64, 512, 512))
+    model = RecursiveCascadeNetwork(n_cascades=args.n, im_size=(64, 256, 256))
+
     trainable_params = []
     for submodel in model.stems:
         trainable_params += list(submodel.parameters())
@@ -197,3 +198,7 @@ def main():
 
         generate_plots(vis_batch[0], vis_batch[1], vis_batch[2], vis_batch[3], train_loss_log, val_loss_log,
                        reg_loss_log, epoch)
+
+
+if __name__ == '__main__':
+    main()

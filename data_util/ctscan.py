@@ -7,10 +7,6 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 import numpy as np
 
-root_dir = '../datasets/750_90'
-root_dir_mask = '../datasets/BORDERS'
-root_dir_mask_cont = '../datasets/Contrast_masks/CONTRAST'
-
 
 def get_sample_by_path(fixed_path, moving_path):
     fixed = ToTensor()(Image.open(os.path.join(root_dir, fixed_path)))
